@@ -1,0 +1,41 @@
+name: contracts
+
+on:
+  push:
+    branches: [main]
+    paths: ["contracts/**", ".github/workflows/contracts.yml"]
+  pull_request:
+    paths: ["contracts/**", ".github/workflows/contracts.yml"]
+
+jobs:
+  forge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.5.1
+      - run: forge build
+      - run: forge test
+
+  halmos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+        # Pinned: halmos 0.3.3 fails setUp on forge 1.8.x build output
+        # ("Unsupported cheat code: deployCode(string,bytes)").
+        with:
+          version: v1.5.1
+      - uses: astral-sh/setup-uv@v6
+      # Version pinned to the one the proofs were authored against; halmos.toml
+      # scopes discovery to the mixedCase check* symbolic suites.
+      - run: uvx --from halmos==0.3.3 halmos

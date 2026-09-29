@@ -1,0 +1,25 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+test = "test"
+script = "script"
+solc_version = "0.8.24"
+optimizer = true
+optimizer_runs = 200
+via_ir = true
+fs_permissions = [{ access = "read", path = "./" }]
+# The many-trader simulations (test/sim) run far past the 1B-gas default.
+gas_limit = "18446744073709551615"
+
+remappings = [
+    "forge-std/=lib/forge-std/src/",
+    "@prb/math/=lib/prb-math/",
+    "bls-solidity/=lib/bls-solidity/src/",
+]
+
+# Long many-trader simulation, outside CI (the default run is sized for it):
+#   FOUNDRY_PROFILE=sim forge test --match-contract ManyTraders
+# Its run sizes are inline on the test, because inline default.* settings
+# apply to every profile unless a profile-specific inline value overrides them.
+[profile.sim]

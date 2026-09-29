@@ -1,0 +1,1037 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hypow</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Martian+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #0f1a1f; --ink: #f6fefd; --ink-2: #949e9c; --line: #3b4a50; --rule: #273035; --well: #0a1216; --signal: #50d2c1;
+    --serif: "Newsreader", Georgia, serif; --mono: "Martian Mono", ui-monospace, Menlo, monospace;
+    --bar: 2.4rem;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--paper); color: var(--ink); -webkit-font-smoothing: antialiased; }
+  body { overflow: hidden; }
+  a { color: inherit; text-underline-offset: .2em; text-decoration-thickness: 1px; }
+  a:hover { color: var(--signal); }
+  .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); height: calc(100% - var(--bar)); }
+
+  /* left: the paper, the only scroller */
+  .paper { overflow-y: auto; padding: 1.6rem 2.4rem 5rem; border-right: 1px solid var(--line); font: 400 1.08rem/1.6 var(--serif); }
+  .wp { max-width: 36rem; }
+  .wp-title h1 { font: 500 1.9rem/1.15 var(--serif); letter-spacing: -.01em; margin: 1.2rem 0 1.4rem; }
+  .wp-abstract { font-size: .98rem; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 1rem 0; margin: 0 0 2.2rem; }
+  .wp-abstract-label { font: 600 .62rem/1 var(--mono); text-transform: uppercase; letter-spacing: .1em; margin-right: .5rem; }
+  .wp h2 { font: 600 .66rem/1 var(--mono); text-transform: uppercase; letter-spacing: .1em; margin: 2.6rem 0 1rem; }
+  .wp h3 { font: italic 500 1.1rem/1.3 var(--serif); margin: 1.8rem 0 .7rem; }
+  .wp p { margin: 0 0 1.05rem; hyphens: auto; }
+  .wp-mono { font: 400 .8em var(--mono); }
+  .wp-formula { text-align: center; margin: 1.3rem 0 !important; }
+  .wp-formula .wp-mono { font-size: .88em; }
+  /* Figures: 600 units wide, 1px rules, 9px mono labels, signal for the quantity that matters. */
+  .wp-figure { margin: 1.6rem 0; }
+  .wp-fig { display: block; width: 100%; height: auto; font: 400 9px var(--mono); fill: var(--ink-2); }
+  .wp-axis { stroke: var(--line); stroke-width: 1; fill: none; }
+  .wp-lane { stroke: var(--rule); stroke-width: 1; }
+  .wp-guide { stroke: var(--ink-2); stroke-dasharray: 3 3; fill: none; }
+  .wp-link, .wp-tick, .wp-slash { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .wp-curve, .wp-key { fill: none; stroke: var(--signal); stroke-width: 1.6; }
+  .wp-hit { stroke: var(--signal); stroke-width: 1.6; }
+  .wp-target { stroke: var(--signal); stroke-width: 1; stroke-dasharray: 3 3; }
+  .wp-dot { fill: var(--signal); }
+  .wp-hollow, .wp-void, .wp-lost { fill: var(--paper); stroke-width: 1; }
+  .wp-hollow { stroke: var(--ink-2); }
+  .wp-open { stroke: var(--ink); }
+  .wp-void { stroke: var(--line); }
+  .wp-lost { stroke: var(--signal); }
+  .wp-shade { fill: var(--signal); fill-opacity: .28; }
+  .wp-faint { fill-opacity: .07; }
+  /* At phone width a figure renders at about 0.6 scale; 13-unit labels read at about 8px. */
+  @media (max-width: 520px) { .wp-fig { font-size: 13px; } }
+  figcaption { font: italic 400 .9rem var(--serif); color: var(--ink-2); margin-top: .4rem; }
+  .wp-references { padding-left: 1.4rem; font-size: .95rem; color: var(--ink-2); }
+  .wp-references li::marker { font: 400 .7rem var(--mono); color: var(--signal); }
+  .masthead { font: 600 .8rem/1 var(--mono); padding-bottom: .7rem; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; }
+  .masthead span { font-weight: 400; color: var(--ink-2); font-size: .66rem; }
+
+  /* right: explorer, fixed */
+  .explorer { padding: 1.6rem 2rem; display: flex; flex-direction: column; min-height: 0; overflow: hidden; font: 400 .72rem/1.7 var(--mono); }
+  .head { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--line); padding-bottom: .7rem; }
+  .head b { font-weight: 600; font-size: .8rem; }
+  .head .chain { color: var(--ink-2); }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--rule); }
+  .stats div { padding: .9rem 0; }
+  .stats small { display: block; color: var(--ink-2); font-size: .6rem; text-transform: uppercase; letter-spacing: .08em; }
+  .stats strong { display: block; font-weight: 400; font-size: 1.15rem; letter-spacing: -.03em; margin-top: .15rem; }
+  h3.lbl { font: 600 .6rem/1 var(--mono); text-transform: uppercase; letter-spacing: .1em; color: var(--ink-2); margin: 1.4rem 0 .5rem; }
+  .view { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .blocks { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--rule) transparent; }
+  thead th { position: sticky; top: 0; background: var(--paper); }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-weight: 400; color: var(--ink-2); font-size: .62rem; padding: .25rem 0; border-bottom: 1px solid var(--rule); }
+  td { padding: .3rem 0; border-bottom: 1px dotted var(--rule); white-space: nowrap; }
+  tbody tr { animation: in .4s ease-out; }
+  @keyframes in { from { background: #50d2c122; } }
+  td.num, th.num { text-align: right; }
+  .empty { color: var(--ink-2); padding: .5rem 0; }
+  .older { display: block; margin: .6rem 0; font: 400 .62rem/1 var(--mono); color: var(--ink-2); background: none; border: 1px solid var(--rule); border-radius: 3px; padding: .35rem .5rem; cursor: pointer; }
+  .older:hover, .older:focus-visible { color: var(--signal); border-color: var(--signal); }
+  .older:disabled { opacity: .5; cursor: default; }
+
+  [hidden] { display: none !important; }
+
+  /* right pane tabs: blocks | miner, and the miner's in-browser | cli */
+  .tabs { display: flex; gap: 1.1rem; }
+  .tabs button { font: 600 .8rem/1 var(--mono); background: none; border: 0; padding: 0 0 .2rem; cursor: pointer; color: var(--ink-2); border-bottom: 1px solid transparent; }
+  .tabs button:hover { color: var(--ink); }
+  .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+  .tabs .live { display: inline-block; width: .38rem; height: .38rem; border-radius: 50%; background: var(--signal); margin-left: .35rem; vertical-align: .08rem; }
+  .subtabs { margin-top: .9rem; gap: .9rem; }
+  .subtabs button { font-weight: 400; font-size: .68rem; }
+  button:focus-visible, input:focus-visible, a:focus-visible { outline: 1px solid var(--signal); outline-offset: 2px; }
+  tr.hit td { color: var(--signal); }
+  .sub { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+  /* in-browser miner: a terminal. Log, the CLI's status box, suggestions, then the prompt. */
+  .term { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: .8rem; background: var(--well); border: 1px solid var(--rule); border-radius: 4px; font: 400 .68rem/1.75 var(--mono); cursor: text; }
+  .term-out { flex: 1; min-height: 0; overflow-y: auto; padding: .7rem .9rem .3rem; scrollbar-width: thin; scrollbar-color: var(--rule) transparent; }
+  /* time | label | message, wrapped lines hanging under the message like the CLI's columns */
+  .term-out .row { display: grid; grid-template-columns: 8ch 11ch minmax(0, 1fr); column-gap: 1.2ch; overflow-wrap: anywhere; }
+  .term-out .time { color: var(--ink-2); }
+  .term-out .label, .term-out .dim { color: var(--ink-2); }
+  .term-out [data-tone="good"] .label { color: var(--signal); }
+  .term-out [data-tone="info"] .label { color: #97fce4; }
+  .term-out [data-tone="warn"] .label { color: #d9b86a; }
+  .term-out [data-tone="bad"] .label { color: #ed7088; }
+  .term-out [data-tone="cmd"] .label, .term-out [data-tone="cmd"] .message { color: var(--ink); }
+  .term-out [data-tone="win"] { color: var(--paper); background: var(--signal); font-weight: 600; }
+  .term-out [data-tone="win"] span { color: var(--paper); }
+  /* a warning to act on, the CLI's red line: on the public RPC, rate-limited */
+  .term-out [data-tone="alarm"] span { color: #ed7088; font-weight: 600; }
+  .term-out [data-tone="alarm"] .dim { font-weight: 400; }
+  /* arrow-key picker, printed into the log */
+  .menu { margin: .15rem 0 .35rem; }
+  .menu .t { display: block; color: var(--ink); font-weight: 600; }
+  .menu button { display: block; width: 100%; background: none; border: 0; padding: 0 0 0 1.3rem; font: inherit; color: var(--ink-2); cursor: pointer; text-align: left; position: relative; white-space: pre-wrap; }
+  .menu button[aria-selected="true"] { color: var(--signal); }
+  .menu button[aria-selected="true"]::before { content: "❯"; position: absolute; left: .1rem; }
+  .menu button:focus-visible { outline: none; }
+  .menu .hint { display: block; color: var(--ink-2); opacity: .7; margin-top: .15rem; }
+  /* the CLI's pinned status box */
+  .term-box { margin: .2rem .9rem .5rem; border: 1px solid var(--rule); border-radius: 3px; padding: .25rem .6rem; color: var(--ink); }
+  .term-box div { display: grid; grid-template-columns: 9ch minmax(0, 1fr); overflow-wrap: anywhere; }
+  .term-box .label { color: var(--ink-2); }
+  .term-box .alarm { color: #ed7088; font-weight: 600; }
+  .term-suggest { border-top: 1px solid var(--rule); padding: .35rem .9rem; }
+  .term-suggest button { display: block; width: 100%; background: none; border: 0; padding: 0 0 0 1.3rem; font: inherit; color: var(--ink-2); cursor: pointer; text-align: left; position: relative; white-space: pre; }
+  .term-suggest button[aria-selected="true"] { color: var(--signal); }
+  .term-suggest button[aria-selected="true"]::before { content: "❯"; position: absolute; left: .1rem; }
+  .term-line { display: flex; gap: .6rem; align-items: center; border-top: 1px solid var(--rule); padding: .5rem .9rem; }
+  .term-prompt { color: var(--signal); white-space: nowrap; }
+  .term-in { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: var(--ink); font: inherit; caret-color: var(--signal); padding: 0; }
+  .term-in:focus-visible { outline: none; }
+  .term-in::placeholder { color: var(--ink-2); opacity: .6; }
+  @media (max-width: 520px) {
+    .term-out .row { grid-template-columns: 11ch minmax(0, 1fr); }
+    .term-out .time { display: none; }
+  }
+
+  .always { margin: .7rem 0 0; color: var(--ink-2); font-size: .66rem; line-height: 1.9; }
+
+  /* header wallet control: "connect wallet" or the owner, each with a small dropdown */
+  .head { align-items: center; }
+  .wallet { position: relative; }
+  .wallet .btn { font: 400 .62rem/1 var(--mono); color: var(--ink-2); background: none; border: 1px solid var(--rule); border-radius: 3px; padding: .35rem .5rem; cursor: pointer; }
+  .wallet .btn:hover, .wallet .btn:focus-visible { color: var(--signal); border-color: var(--signal); }
+  .wallet .drop { position: absolute; right: 0; top: calc(100% + .3rem); z-index: 2; min-width: 12rem; background: var(--paper); border: 1px solid var(--rule); border-radius: 3px; padding: .25rem 0; }
+  .wallet .drop button { display: block; width: 100%; text-align: left; background: none; border: 0; padding: .35rem .7rem; font: 400 .66rem/1.4 var(--mono); color: var(--ink); cursor: pointer; }
+  .wallet .drop button:hover, .wallet .drop button:focus-visible { color: var(--signal); }
+  /* connect popup: the wallets the browser has, one row each */
+  dialog.connect { width: calc(100% - 2rem); max-width: 22rem; padding: 1rem 1.1rem 1.1rem; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); color: var(--ink); font: 400 .72rem/1.6 var(--mono); }
+  dialog.connect::backdrop { background: #04060caa; }
+  .connect-head { display: flex; justify-content: space-between; align-items: center; }
+  .connect-head .title { font-weight: 600; font-size: .8rem; }
+  .connect-head .x { background: none; border: 0; color: var(--ink-2); font: 400 1.1rem/1 var(--mono); cursor: pointer; padding: 0 .2rem; }
+  .connect-head .x:hover { color: var(--signal); }
+  dialog.connect .dim { display: block; color: var(--ink-2); font-size: .66rem; margin: .35rem 0 .9rem; }
+  .connect-list { display: flex; flex-direction: column; gap: .4rem; }
+  .connect-row { display: flex; align-items: center; gap: .7rem; width: 100%; background: var(--well); border: 1px solid var(--rule); border-radius: 3px; padding: .6rem .7rem; font: inherit; color: var(--ink); cursor: pointer; text-align: left; }
+  .connect-row:hover, .connect-row:focus-visible { border-color: var(--signal); color: var(--signal); outline: none; }
+  .connect-row img { width: 20px; height: 20px; border-radius: 4px; }
+  .connect-empty { margin: 0; color: var(--ink-2); font-size: .66rem; }
+
+  /* cli: the install instructions */
+  .cli { display: block; overflow-y: auto; margin-top: .8rem; font: 400 1rem/1.6 var(--serif); }
+  .cli p { margin: 0 0 .8rem; }
+  .cli ol { padding-left: 1.2rem; margin: .4rem 0 1rem; }
+  .cli li { margin-bottom: .4rem; }
+  .cli li::marker { font: 400 .7rem var(--mono); color: var(--ink-2); }
+  .cli code { font: 400 .74rem var(--mono); }
+  .cli .cmdline { position: relative; background: var(--well); border: 1px solid var(--rule); border-radius: 4px; padding: .75rem 3.8rem .75rem .9rem; margin: .5rem 0 1.1rem; }
+  .cli .cmdline .lines { overflow-x: auto; white-space: nowrap; }
+  .cli .cmdline code { display: block; font-size: .74rem; line-height: 1.9; }
+  .cli .cmdline code::before { content: "$ "; color: var(--ink-2); }
+  .cli .cmdline button { position: absolute; top: .55rem; right: .6rem; font: 400 .62rem/1 var(--mono); color: var(--ink-2); background: none; border: 1px solid var(--rule); border-radius: 3px; padding: .3rem .45rem; cursor: pointer; }
+  .cli .cmdline button:hover { color: var(--signal); border-color: var(--signal); }
+  .cli .dim { color: var(--ink-2); font-size: .92rem; }
+
+  .bar { height: var(--bar); border-top: 1px solid var(--line); display: flex; align-items: center; gap: 2rem; padding: 0 2rem; font: 400 .68rem/1 var(--mono); overflow-x: auto; white-space: nowrap; }
+  .bar .dim { color: var(--ink-2); margin-left: auto; }
+
+
+  @media (max-width: 860px) {
+    body { overflow: auto; }
+    .split { display: flex; flex-direction: column-reverse; height: auto; }
+    .explorer { height: 60svh; padding: 1.2rem 1.1rem; border-bottom: 1px solid var(--line); }
+    .paper { overflow: visible; border-right: 0; padding: 1.4rem 1.1rem 3rem; }
+    .bar { position: sticky; bottom: 0; background: var(--paper); padding: 0 1.1rem; gap: 1.2rem; }
+    .bar .dim { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="split">
+  <main class="paper">
+    <div class="masthead">whitepaper</div>
+<article class="wp">
+      <header class="wp-title">
+        <h1>Hypow: Proof of Trade</h1>
+        <p class="wp-abstract">
+          <span class="wp-abstract-label">Abstract.</span>
+          Hypow is fair-launch money, mined as a byproduct of trading. Each cent of
+          notional volume traded in Hyperliquid's perpetual markets grants one chance at
+          minting a coinbase reward, evaluated by an off-chain search for a nonce whose hash falls below
+          the current difficulty target. Total supply is capped at twenty-one billion,
+          emitted along a continuous exponential decay over the global block count, with
+          difficulty retargeting to maintain a constant inter-block interval. There is
+          no premine, no team allocation, no private round, no admin, no governance. As
+          Hyperliquid's market coverage grows, so does the mineable surface. The genesis
+          state of the system is a contract address and a difficulty parameter.
+        </p>
+      </header>
+
+      <section id="wp-introduction">
+        <h2>1. Introduction</h2>
+        <p>
+          Bitcoin backed money with energy. Every attempt at a block burns electricity,
+          and whoever pays that cost earns the coin. The cost is real and verifiable, but
+          the energy is spent for the sake of the proof.
+        </p>
+        <p>
+          Trade is the evolution of energy. Every cent traded on Hyperliquid is one
+          attempt at a block, and every attempt carries a real cost, paid in the market: spread and fees for the taker, inventory and risk for the maker.
+          That cost is spent for the sake of the trade: it buys a position the trader
+          wanted, and pays for liquidity and price discovery along the way. The proof
+          comes as a byproduct of economic activity that was going to happen anyway.
+        </p>
+        <p>
+          Hypow is fair-launch money backed by that activity. It lives on Hyperliquid, the most
+          liquid onchain market in the world. Trading is work: it commits capital,
+          attention, and risk. Every coin in existence stands for that work, done and paid
+          for in the market. As Hyperliquid grows, so does the economic power needed to
+          generate each coin.
+        </p>
+      </section>
+
+      <section id="wp-proof-of-trade">
+        <h2>2. Proof of Trade</h2>
+        <p>A mining claim is a nonce satisfying</p>
+        <p class="wp-formula">
+          <span class="wp-mono">
+            H(seal, trader, nonce) &lt; target(D)
+          </span>
+        </p>
+        <p>
+          where <span class="wp-mono">seal</span> is the hash of the drand public
+          randomness beacon's signature for the round the attempts were committed to, <span class="wp-mono">trader</span>
+          is the trading address, <span class="wp-mono">nonce</span> ranges over the
+          attempts committed to that round, one per cent of notional volume, and
+          <span class="wp-mono">D</span> is the current difficulty. The participant
+          searches off-chain and submits only a winning nonce. Each successful claim
+          advances the chain and closes its round and every earlier one.
+        </p>
+        <figure class="wp-figure">
+          <svg viewBox="0 0 600 170" class="wp-fig" role="img" aria-label="Forty attempts on the hash range; the target moves left as difficulty rises">
+            <line class="wp-axis" x1="12" y1="40" x2="588" y2="40" />
+            <line class="wp-hit" x1="12" y1="29" x2="12" y2="40" />
+            <line class="wp-tick" x1="542.4" y1="29" x2="542.4" y2="40" />
+            <line class="wp-tick" x1="178.6" y1="29" x2="178.6" y2="40" />
+            <line class="wp-tick" x1="133.3" y1="29" x2="133.3" y2="40" />
+            <line class="wp-tick" x1="432.1" y1="29" x2="432.1" y2="40" />
+            <line class="wp-tick" x1="318.8" y1="29" x2="318.8" y2="40" />
+            <line class="wp-tick" x1="201.7" y1="29" x2="201.7" y2="40" />
+            <line class="wp-tick" x1="445.2" y1="29" x2="445.2" y2="40" />
+            <line class="wp-tick" x1="446.9" y1="29" x2="446.9" y2="40" />
+            <line class="wp-tick" x1="324.7" y1="29" x2="324.7" y2="40" />
+            <line class="wp-tick" x1="406.3" y1="29" x2="406.3" y2="40" />
+            <line class="wp-tick" x1="378.3" y1="29" x2="378.3" y2="40" />
+            <line class="wp-tick" x1="482.5" y1="29" x2="482.5" y2="40" />
+            <line class="wp-tick" x1="151.4" y1="29" x2="151.4" y2="40" />
+            <line class="wp-tick" x1="227.6" y1="29" x2="227.6" y2="40" />
+            <line class="wp-tick" x1="419.8" y1="29" x2="419.8" y2="40" />
+            <line class="wp-tick" x1="414.1" y1="29" x2="414.1" y2="40" />
+            <line class="wp-hit" x1="43" y1="29" x2="43" y2="40" />
+            <line class="wp-tick" x1="405.9" y1="29" x2="405.9" y2="40" />
+            <line class="wp-tick" x1="281.5" y1="29" x2="281.5" y2="40" />
+            <line class="wp-tick" x1="543.3" y1="29" x2="543.3" y2="40" />
+            <line class="wp-tick" x1="477.1" y1="29" x2="477.1" y2="40" />
+            <line class="wp-hit" x1="82.8" y1="29" x2="82.8" y2="40" />
+            <line class="wp-tick" x1="307.5" y1="29" x2="307.5" y2="40" />
+            <line class="wp-tick" x1="543.7" y1="29" x2="543.7" y2="40" />
+            <line class="wp-tick" x1="408.6" y1="29" x2="408.6" y2="40" />
+            <line class="wp-tick" x1="382.8" y1="29" x2="382.8" y2="40" />
+            <line class="wp-tick" x1="344.6" y1="29" x2="344.6" y2="40" />
+            <line class="wp-tick" x1="537.3" y1="29" x2="537.3" y2="40" />
+            <line class="wp-tick" x1="535.2" y1="29" x2="535.2" y2="40" />
+            <line class="wp-tick" x1="226.4" y1="29" x2="226.4" y2="40" />
+            <line class="wp-tick" x1="205.2" y1="29" x2="205.2" y2="40" />
+            <line class="wp-tick" x1="494.2" y1="29" x2="494.2" y2="40" />
+            <line class="wp-tick" x1="203.4" y1="29" x2="203.4" y2="40" />
+            <line class="wp-hit" x1="99.9" y1="29" x2="99.9" y2="40" />
+            <line class="wp-tick" x1="183.4" y1="29" x2="183.4" y2="40" />
+            <line class="wp-tick" x1="258.8" y1="29" x2="258.8" y2="40" />
+            <line class="wp-tick" x1="181.8" y1="29" x2="181.8" y2="40" />
+            <line class="wp-tick" x1="551.9" y1="29" x2="551.9" y2="40" />
+            <line class="wp-tick" x1="333" y1="29" x2="333" y2="40" />
+            <line class="wp-target" x1="108" y1="12" x2="108" y2="46" />
+            <text x="113" y="20" text-anchor="start">target(D)</text>
+            <text x="588" y="20" text-anchor="end">difficulty D</text>
+            <text x="12" y="58" text-anchor="start">0</text>
+            <text x="588" y="58" text-anchor="end">2<tspan dy="-.4em" font-size=".75em">256</tspan></text>
+            <text x="300" y="58" text-anchor="middle">4 of 40 under</text>
+            <line class="wp-axis" x1="12" y1="128" x2="588" y2="128" />
+            <line class="wp-hit" x1="12" y1="117" x2="12" y2="128" />
+            <line class="wp-tick" x1="542.4" y1="117" x2="542.4" y2="128" />
+            <line class="wp-tick" x1="178.6" y1="117" x2="178.6" y2="128" />
+            <line class="wp-tick" x1="133.3" y1="117" x2="133.3" y2="128" />
+            <line class="wp-tick" x1="432.1" y1="117" x2="432.1" y2="128" />
+            <line class="wp-tick" x1="318.8" y1="117" x2="318.8" y2="128" />
+            <line class="wp-tick" x1="201.7" y1="117" x2="201.7" y2="128" />
+            <line class="wp-tick" x1="445.2" y1="117" x2="445.2" y2="128" />
+            <line class="wp-tick" x1="446.9" y1="117" x2="446.9" y2="128" />
+            <line class="wp-tick" x1="324.7" y1="117" x2="324.7" y2="128" />
+            <line class="wp-tick" x1="406.3" y1="117" x2="406.3" y2="128" />
+            <line class="wp-tick" x1="378.3" y1="117" x2="378.3" y2="128" />
+            <line class="wp-tick" x1="482.5" y1="117" x2="482.5" y2="128" />
+            <line class="wp-tick" x1="151.4" y1="117" x2="151.4" y2="128" />
+            <line class="wp-tick" x1="227.6" y1="117" x2="227.6" y2="128" />
+            <line class="wp-tick" x1="419.8" y1="117" x2="419.8" y2="128" />
+            <line class="wp-tick" x1="414.1" y1="117" x2="414.1" y2="128" />
+            <line class="wp-tick" x1="43" y1="117" x2="43" y2="128" />
+            <line class="wp-tick" x1="405.9" y1="117" x2="405.9" y2="128" />
+            <line class="wp-tick" x1="281.5" y1="117" x2="281.5" y2="128" />
+            <line class="wp-tick" x1="543.3" y1="117" x2="543.3" y2="128" />
+            <line class="wp-tick" x1="477.1" y1="117" x2="477.1" y2="128" />
+            <line class="wp-tick" x1="82.8" y1="117" x2="82.8" y2="128" />
+            <line class="wp-tick" x1="307.5" y1="117" x2="307.5" y2="128" />
+            <line class="wp-tick" x1="543.7" y1="117" x2="543.7" y2="128" />
+            <line class="wp-tick" x1="408.6" y1="117" x2="408.6" y2="128" />
+            <line class="wp-tick" x1="382.8" y1="117" x2="382.8" y2="128" />
+            <line class="wp-tick" x1="344.6" y1="117" x2="344.6" y2="128" />
+            <line class="wp-tick" x1="537.3" y1="117" x2="537.3" y2="128" />
+            <line class="wp-tick" x1="535.2" y1="117" x2="535.2" y2="128" />
+            <line class="wp-tick" x1="226.4" y1="117" x2="226.4" y2="128" />
+            <line class="wp-tick" x1="205.2" y1="117" x2="205.2" y2="128" />
+            <line class="wp-tick" x1="494.2" y1="117" x2="494.2" y2="128" />
+            <line class="wp-tick" x1="203.4" y1="117" x2="203.4" y2="128" />
+            <line class="wp-tick" x1="99.9" y1="117" x2="99.9" y2="128" />
+            <line class="wp-tick" x1="183.4" y1="117" x2="183.4" y2="128" />
+            <line class="wp-tick" x1="258.8" y1="117" x2="258.8" y2="128" />
+            <line class="wp-tick" x1="181.8" y1="117" x2="181.8" y2="128" />
+            <line class="wp-tick" x1="551.9" y1="117" x2="551.9" y2="128" />
+            <line class="wp-tick" x1="333" y1="117" x2="333" y2="128" />
+            <line class="wp-target" x1="36" y1="100" x2="36" y2="134" />
+            <text x="41" y="108" text-anchor="start">target(4D)</text>
+            <text x="588" y="108" text-anchor="end">difficulty 4D</text>
+            <text x="12" y="146" text-anchor="start">0</text>
+            <text x="588" y="146" text-anchor="end">2<tspan dy="-.4em" font-size=".75em">256</tspan></text>
+            <text x="300" y="146" text-anchor="middle">1 of 40 under</text>
+          </svg>
+          <figcaption>
+            The same forty attempts at two difficulties. A higher difficulty moves the target toward zero. Not to scale.
+          </figcaption>
+        </figure>
+        <p>
+          The name designates the binding constraint, not the filter. Compute is free;
+          trade volume is the scarce resource. Each cent of perpetual notional volume
+          grants one chance. No chance can be evaluated before it is committed: attempts are committed to a round that has not yet been published, so there is nothing to precompute. Identities confer nothing; the chances are the volume,
+          however it is divided among addresses. The hash filter spreads expected wins
+          across the active trader population. The entire emission record is publicly
+          reconstructible from on-chain position changes, committed draws, the drand rounds that decided them, and the claimed nonces. Every coinbase reward is
+          verifiable by inspection.
+        </p>
+        <figure class="wp-figure">
+          <svg viewBox="0 0 600 176" class="wp-fig" role="img" aria-label="Attempts are committed to a drand round that is published only seconds later">
+            <rect class="wp-shade wp-faint" x="150" y="38" width="184" height="92" />
+            <line class="wp-lane" x1="0" y1="38" x2="600" y2="38" />
+            <text x="0" y="26" text-anchor="start">drand</text>
+            <line class="wp-lane" x1="0" y1="130" x2="600" y2="130" />
+            <text x="0" y="122" text-anchor="start">miner</text>
+            <line class="wp-axis" x1="94" y1="33" x2="94" y2="43" />
+            <text x="94" y="26" text-anchor="middle">r−2</text>
+            <line class="wp-axis" x1="214" y1="33" x2="214" y2="43" />
+            <text x="214" y="26" text-anchor="middle">r−1</text>
+            <line class="wp-axis" x1="334" y1="33" x2="334" y2="43" />
+            <text x="334" y="26" text-anchor="middle">r</text>
+            <line class="wp-axis" x1="454" y1="33" x2="454" y2="43" />
+            <text x="454" y="26" text-anchor="middle">r+1</text>
+            <line class="wp-axis" x1="574" y1="33" x2="574" y2="43" />
+            <text x="574" y="26" text-anchor="middle">r+2</text>
+            <text x="242" y="58" text-anchor="middle">3–6 s</text>
+            <text x="242" y="77" text-anchor="middle">outcome unknowable</text>
+            <text x="242" y="96" text-anchor="middle">to everyone</text>
+            <line class="wp-guide" x1="150" y1="38" x2="150" y2="130" />
+            <circle class="wp-dot wp-hollow" cx="150" cy="130" r="3" />
+            <text x="150" y="148" text-anchor="middle">commit to r</text>
+            <circle class="wp-dot" cx="334" cy="38" r="3" />
+            <line class="wp-link" x1="334" y1="42" x2="334" y2="126" />
+            <polyline class="wp-link" points="336.2,121.5 334,126 331.8,121.5" />
+            <path class="wp-key" d="M346 130 H430" />
+            <text x="388" y="148" text-anchor="middle">search</text>
+            <circle class="wp-dot wp-hollow" cx="474" cy="130" r="3" />
+            <text x="474" y="148" text-anchor="middle">settle</text>
+          </svg>
+          <figcaption>
+            Attempts are committed two rounds ahead of the latest drand round. Until that round is published, no one can evaluate them.
+          </figcaption>
+        </figure>
+        <p>
+          Mining costs the venue's spread, set by an adversarial market. A real trader
+          pays this regardless and mines as a byproduct. A wash trader pays it twice per
+          round trip with no other return. As real participation grows, the wash trader
+          competes against an expanding majority that mines for free.
+        </p>
+      </section>
+
+      <section id="wp-architecture">
+        <h2>3. Architecture</h2>
+
+        <h3>3.1 Verification by observation</h3>
+        <p>
+          HyperEVM precompiles expose state (positions, balances, prices), not history.
+          A contract cannot, given an address, retrieve the list of trades
+          that address has made. It can read that address's current position on any
+          given perpetual market, including every builder-deployed market, present or
+          future.
+        </p>
+        <p>
+          This is sufficient. The contract reads the participant's position before and
+          after a window of activity. The magnitude of that change since the previous
+          observation is the credited volume. Growth is valued at the prevailing mark. A
+          reduction is valued at the lower of the prevailing mark and the mark at the
+          position's previous observation, so a close cannot be credited at a price
+          reached after it. Frequent observation makes the credit track realised trading
+          closely. That volume is what
+          the hash filter samples. The cost of the change (spread, fees, and slippage for the taker; inventory and risk for the maker) is paid in an adversarial market regardless, and is what makes the
+          chance scarce.
+        </p>
+        <figure class="wp-figure">
+          <svg viewBox="0 0 600 224" class="wp-fig" role="img" aria-label="One position over time, with the credited change at each capture shaded">
+            <line class="wp-axis" x1="56" y1="22" x2="56" y2="180" />
+            <line class="wp-axis" x1="56" y1="136" x2="592" y2="136" />
+            <text x="50" y="85" text-anchor="end">long</text>
+            <text x="50" y="140" text-anchor="end">flat</text>
+            <text x="50" y="162" text-anchor="end">short</text>
+            <rect class="wp-shade" x="192" y="103" width="8" height="33" />
+            <rect class="wp-shade" x="300" y="81" width="8" height="22" />
+            <rect class="wp-shade" x="524" y="81" width="8" height="77" />
+            <path class="wp-curve" d="M56 136 H124 V103 H244 V81 H338 V42.5 H378 V81 H458 V158 H592" />
+            <text x="358" y="32.5" text-anchor="middle">round trip: unseen</text>
+            <line class="wp-lane" x1="56" y1="194" x2="592" y2="194" />
+            <line class="wp-axis" x1="88" y1="188" x2="88" y2="194" />
+            <line class="wp-guide" x1="88" y1="184" x2="88" y2="136" />
+            <text x="88" y="210" text-anchor="middle">baseline</text>
+            <line class="wp-axis" x1="196" y1="188" x2="196" y2="194" />
+            <line class="wp-guide" x1="196" y1="184" x2="196" y2="103" />
+            <text x="196" y="210" text-anchor="middle">+3</text>
+            <line class="wp-axis" x1="304" y1="188" x2="304" y2="194" />
+            <line class="wp-guide" x1="304" y1="184" x2="304" y2="81" />
+            <text x="304" y="210" text-anchor="middle">+2</text>
+            <line class="wp-axis" x1="412" y1="188" x2="412" y2="194" />
+            <line class="wp-guide" x1="412" y1="184" x2="412" y2="81" />
+            <text x="412" y="210" text-anchor="middle">+0</text>
+            <line class="wp-axis" x1="528" y1="188" x2="528" y2="194" />
+            <line class="wp-guide" x1="528" y1="184" x2="528" y2="158" />
+            <text x="528" y="210" text-anchor="middle">+7</text>
+            <text x="592" y="210" text-anchor="end">lots</text>
+          </svg>
+          <figcaption>
+            One position, seen only at captures. Each capture credits the change since the last, shaded; a round trip between captures leaves no trace.
+          </figcaption>
+        </figure>
+        <p>
+          A position change is a position change. A discretionary trade, a liquidation,
+          an automatic deleveraging, a passive fill of a resting order: all are
+          observed equally, all mine. The protocol makes no judgment about how the
+          change was produced; the participant paid for it either way.
+        </p>
+        <p>
+          Credited volume is banked as attempts, which never expire. Attempts are
+          committed to a draw on a drand round a few seconds in the future, and become
+          evaluable only once that round exists. drand is produced by an independent network of operators through threshold signatures, and every round is publicly verifiable, so no participant, validator, or block producer can predict or bias it. Because the round is unknown when attempts are committed, the timing of a commitment confers no advantage. Each draw is bound to exactly one round and is never redrawn.
+        </p>
+        <p>
+          A claim on a round closes that round and every earlier one; their unclaimed
+          draws are void. Draws on later rounds carry on, so the next claim on a later
+          round is the deadline for every earlier draw, and a winner must claim
+          promptly. A change not yet observed is not lost: it is credited at the next
+          observation. A change undone before then is never seen, which is why the miner
+          observes after every fill.
+        </p>
+        <figure class="wp-figure">
+          <svg viewBox="0 0 600 194" class="wp-fig" role="img" aria-label="A claim on round R closes it and every earlier round; later draws carry on">
+            <rect class="wp-shade wp-faint" x="0" y="46" width="325" height="60" />
+            <line class="wp-axis" x1="0" y1="106" x2="600" y2="106" />
+            <line class="wp-axis" x1="50" y1="106" x2="50" y2="111" />
+            <text x="50" y="124" text-anchor="middle">R−5</text>
+            <line class="wp-axis" x1="100" y1="106" x2="100" y2="111" />
+            <text x="100" y="124" text-anchor="middle">R−4</text>
+            <line class="wp-axis" x1="150" y1="106" x2="150" y2="111" />
+            <text x="150" y="124" text-anchor="middle">R−3</text>
+            <line class="wp-axis" x1="200" y1="106" x2="200" y2="111" />
+            <text x="200" y="124" text-anchor="middle">R−2</text>
+            <line class="wp-axis" x1="250" y1="106" x2="250" y2="111" />
+            <text x="250" y="124" text-anchor="middle">R−1</text>
+            <line class="wp-axis" x1="300" y1="106" x2="300" y2="111" />
+            <text x="300" y="124" text-anchor="middle">R</text>
+            <line class="wp-axis" x1="350" y1="106" x2="350" y2="111" />
+            <text x="350" y="124" text-anchor="middle">R+1</text>
+            <line class="wp-axis" x1="400" y1="106" x2="400" y2="111" />
+            <text x="400" y="124" text-anchor="middle">R+2</text>
+            <line class="wp-axis" x1="450" y1="106" x2="450" y2="111" />
+            <text x="450" y="124" text-anchor="middle">R+3</text>
+            <line class="wp-axis" x1="500" y1="106" x2="500" y2="111" />
+            <text x="500" y="124" text-anchor="middle">R+4</text>
+            <line class="wp-axis" x1="550" y1="106" x2="550" y2="111" />
+            <text x="550" y="124" text-anchor="middle">R+5</text>
+            <circle class="wp-dot wp-void" cx="100" cy="92" r="3" />
+            <line class="wp-slash" x1="95" y1="97" x2="105" y2="87" />
+            <circle class="wp-dot wp-void" cx="150" cy="92" r="3" />
+            <line class="wp-slash" x1="145" y1="97" x2="155" y2="87" />
+            <circle class="wp-dot wp-void" cx="150" cy="78" r="3" />
+            <line class="wp-slash" x1="145" y1="83" x2="155" y2="73" />
+            <circle class="wp-dot wp-lost" cx="200" cy="92" r="3" />
+            <line class="wp-slash" x1="195" y1="97" x2="205" y2="87" />
+            <circle class="wp-dot wp-void" cx="250" cy="92" r="3" />
+            <line class="wp-slash" x1="245" y1="97" x2="255" y2="87" />
+            <circle class="wp-dot wp-void" cx="300" cy="92" r="3" />
+            <line class="wp-slash" x1="295" y1="97" x2="305" y2="87" />
+            <circle class="wp-dot" cx="300" cy="78" r="3" />
+            <circle class="wp-dot wp-hollow wp-open" cx="350" cy="92" r="3" />
+            <circle class="wp-dot wp-hollow wp-open" cx="350" cy="78" r="3" />
+            <circle class="wp-dot wp-hollow wp-open" cx="450" cy="92" r="3" />
+            <circle class="wp-dot wp-hollow wp-open" cx="500" cy="92" r="3" />
+            <circle class="wp-dot wp-hollow wp-open" cx="500" cy="78" r="3" />
+            <line class="wp-guide" x1="300" y1="72" x2="300" y2="22" />
+            <text x="306" y="18" text-anchor="start">claim on R</text>
+            <line class="wp-guide" x1="200" y1="86" x2="200" y2="22" />
+            <text x="194" y="18" text-anchor="end">unclaimed win: lost</text>
+            <polyline class="wp-axis" points="4,133 4,138 321,138 321,133" />
+            <text x="162.5" y="156" text-anchor="middle">closed: draws void</text>
+            <polyline class="wp-axis" points="329,133 329,138 596,138 596,133" />
+            <text x="462.5" y="156" text-anchor="middle">open: draws carry on</text>
+          </svg>
+          <figcaption>
+            A claim on round R voids every unclaimed draw on R and earlier, a late winner's included. Later draws carry on.
+          </figcaption>
+        </figure>
+        <p>
+          The participant trades natively on Hyperliquid through any interface they
+          would use anyway. Their funds never leave their own account. The protocol
+          holds nothing.
+        </p>
+
+        <h3>3.2 Difficulty</h3>
+        <p>
+          Difficulty <span class="wp-mono">D</span> retargets every 2,016 blocks to
+          maintain a target interval of one block per minute, measured in HyperEVM
+          block time. It scales by the ratio of the expected time to the time the window
+          actually took, by at most a factor of four either way, as in Bitcoin. As
+          participation grows, <span class="wp-mono">D</span> rises. As it falls, 
+          <span class="wp-mono">D</span> falls. The supply curve is independent of
+          the level of activity; only the probability of winning per nonce moves.
+        </p>
+        <p>
+          The target interval is short by design. It does not change a participant's
+          expected share of emission, only how finely that share is divided: a short
+          interval lets an occasional trader realise a win rather than hold a small
+          chance at a large one. It is bounded below by the latency between observation
+          and claim, since a draw is void once a later round is claimed; the
+          interval is set well above it.
+        </p>
+        <p>
+          A sudden collapse in participation would otherwise stall the chain: a window
+          sized for the old activity could take months to fill. So a window that has
+          already run four times its target duration, about 5.6 days, retargets at its
+          next block instead of waiting for block 2,016, dividing
+          <span class="wp-mono">D</span> by four and starting a new window. The delay is
+          long enough that no one can trigger it cheaply to game difficulty down.
+        </p>
+        <figure class="wp-figure">
+          <svg viewBox="0 0 600 212" class="wp-fig" role="img" aria-label="Difficulty across retarget windows, with the four-times clamp and the stall escape">
+            <line class="wp-axis" x1="56" y1="44" x2="56" y2="180" />
+            <line class="wp-axis" x1="56" y1="180" x2="592" y2="180" />
+            <text x="50" y="168" text-anchor="end">D₀</text>
+            <text x="50" y="138" text-anchor="end">2D₀</text>
+            <text x="50" y="78" text-anchor="end">8D₀</text>
+            <line class="wp-axis" x1="144" y1="175" x2="144" y2="185" />
+            <line class="wp-axis" x1="188" y1="175" x2="188" y2="185" />
+            <line class="wp-axis" x1="202.7" y1="175" x2="202.7" y2="185" />
+            <line class="wp-axis" x1="554.7" y1="175" x2="554.7" y2="185" />
+            <line class="wp-guide" x1="554.7" y1="80" x2="554.7" y2="175" />
+            <text x="100" y="200" text-anchor="middle">T</text>
+            <text x="166" y="200" text-anchor="middle">T/2</text>
+            <text x="204.7" y="200" text-anchor="middle">T/6</text>
+            <text x="378.7" y="200" text-anchor="middle">4T, window unfilled</text>
+            <line class="wp-guide" x1="202.7" y1="74" x2="202.7" y2="56.5" />
+            <line class="wp-guide" x1="202.7" y1="56.5" x2="246.7" y2="56.5" />
+            <text x="252.7" y="60.5" text-anchor="start">×6 wanted, clamped to ×4</text>
+            <text x="182" y="150" text-anchor="end">×2</text>
+            <text x="378.7" y="96" text-anchor="middle">participation collapses</text>
+            <text x="566.7" y="108" text-anchor="start">÷4</text>
+            <path class="wp-curve" d="M56 164 H188 V134 H202.7 V74 H561.7 V134 H592" />
+          </svg>
+          <figcaption>
+            Difficulty on a log scale, where T is a window's target duration, about 33.6 hours. A fast window is clamped to ×4. A window unfilled after 4T divides D by four at its next block.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section id="wp-miner">
+        <h2>4. The Miner</h2>
+        <p>
+          The trading address acts once: it authorises a miner, by a single transaction
+          or a single signature that anyone may submit. A miner
+          is a local key, typically holding only gas, that observes the trader's
+          positions, records each change on-chain promptly, commits the trader's
+          attempts to draws, evaluates them off-chain, and submits the winning claims.
+          The trader authorises exactly one such key and may revoke it at any time. The
+          reward mints to the trading address whoever submits, so the miner advances
+          state and pays gas but can neither redirect a reward, register volume the
+          trader did not trade, nor choose its round.
+        </p>
+        <figure class="wp-figure">
+          <svg viewBox="0 0 600 238" class="wp-fig" role="img" aria-label="The mining flow across Hyperliquid, the miner key, the HyperEVM minter and drand">
+            <line class="wp-lane" x1="0" y1="30" x2="600" y2="30" />
+            <text x="0" y="22" text-anchor="start">hyperliquid</text>
+            <line class="wp-lane" x1="0" y1="90" x2="600" y2="90" />
+            <text x="0" y="82" text-anchor="start">miner key</text>
+            <line class="wp-lane" x1="0" y1="150" x2="600" y2="150" />
+            <text x="0" y="142" text-anchor="start">hyperevm</text>
+            <line class="wp-lane" x1="0" y1="210" x2="600" y2="210" />
+            <text x="0" y="202" text-anchor="start">drand</text>
+            <circle class="wp-dot" cx="150" cy="30" r="3" />
+            <text x="150" y="22" text-anchor="middle">trade</text>
+            <circle class="wp-dot wp-hollow" cx="212" cy="90" r="3" />
+            <text x="212" y="82" text-anchor="middle">capture</text>
+            <line class="wp-link" x1="212" y1="93" x2="212" y2="146" />
+            <polyline class="wp-link" points="214.2,141.5 212,146 209.8,141.5" />
+            <line class="wp-guide" x1="252" y1="150" x2="252" y2="34" />
+            <text x="256" y="46" text-anchor="start">reads position</text>
+            <circle class="wp-dot" cx="212" cy="150" r="3" />
+            <text x="212" y="168" text-anchor="middle">banks</text>
+            <circle class="wp-dot wp-hollow" cx="318" cy="90" r="3" />
+            <text x="318" y="82" text-anchor="middle">spend</text>
+            <line class="wp-link" x1="318" y1="93" x2="318" y2="146" />
+            <polyline class="wp-link" points="320.2,141.5 318,146 315.8,141.5" />
+            <circle class="wp-dot" cx="318" cy="150" r="3" />
+            <text x="318" y="168" text-anchor="middle">draw on r</text>
+            <line class="wp-guide" x1="318" y1="176" x2="318" y2="210" />
+            <line class="wp-axis" x1="318" y1="200" x2="420" y2="200" />
+            <line class="wp-axis" x1="318" y1="196" x2="318" y2="204" />
+            <line class="wp-axis" x1="420" y1="196" x2="420" y2="204" />
+            <text x="369" y="194" text-anchor="middle">3–6 s</text>
+            <circle class="wp-dot" cx="420" cy="210" r="3" />
+            <text x="420" y="228" text-anchor="middle">round r</text>
+            <line class="wp-link" x1="420" y1="206" x2="420" y2="96" />
+            <polyline class="wp-link" points="417.8,100.5 420,96 422.2,100.5" />
+            <path class="wp-key" d="M432 90 H500" />
+            <text x="466" y="82" text-anchor="middle">search</text>
+            <circle class="wp-dot wp-hollow" cx="548" cy="90" r="3" />
+            <text x="548" y="82" text-anchor="middle">settle</text>
+            <line class="wp-link" x1="548" y1="93" x2="548" y2="146" />
+            <polyline class="wp-link" points="550.2,141.5 548,146 545.8,141.5" />
+            <circle class="wp-dot" cx="548" cy="150" r="3" />
+            <text x="548" y="168" text-anchor="middle">mint</text>
+          </svg>
+          <figcaption>
+            One block, from trade to mint. Losing draws never reach the chain.
+          </figcaption>
+        </figure>
+        <p>
+          Observation is the trader's own. A capture values the change at the mark it
+          reads, so the moment of a capture is worth something, and a stranger who chose
+          it could only choose a bad one. Only the trader or their authorised key may
+          capture the trader; a trader who has joined a pool is captured only by that
+          pool. Committing attempts is likewise the trader's decision, made by the trader
+          or their authorised key. Claiming is open to anyone, and the reward mints to
+          the trader whoever submits.
+        </p>
+        <p>
+          The only advantage one miner holds over another is the latency between
+          observation and claim. The target interval is set so that this advantage is
+          small.
+        </p>
+      </section>
+
+      <section id="wp-tokenomics">
+        <h2>5. Supply</h2>
+        <p>
+          Hypow is a fair launch. Every coin in existence is mined, under the same rules for every participant from the first block; none is premined, allocated, or sold. Hypow has a fixed cap of <span class="wp-mono">21,000,000,000</span> 
+          coins. Emission follows a single continuous exponential decay over the global
+          block count, with no halvings, no cliffs, and no discretionary parameters.
+        </p>
+
+        <h3>5.1 The emission curve</h3>
+        <p>
+          Let <span class="wp-mono">n</span> be the global block counter,
+          incremented by one on each successful claim. The reward paid for block 
+          <span class="wp-mono">n</span> is
+        </p>
+        <p class="wp-formula">
+          <span class="wp-mono">
+            R(n) = R&#x2080; &middot; e<sup>&minus;&lambda;n</sup>
+          </span>
+        </p>
+        <p>
+          with <span class="wp-mono">R&#x2080; = 12,721.6</span> and 
+          <span class="wp-mono">
+            &lambda; = 6.058 &times; 10<sup>&minus;7</sup>
+          </span>
+          . The two constants are linked by the cap: 
+          <span class="wp-mono">
+            R&#x2080; &divide; &lambda; &asymp; 20.9997B
+          </span>, just under
+          <span class="wp-mono">S<sub>max</sub> = 21B</span>, so total emission stays
+          below the fixed supply. The cumulative emission after block
+          <span class="wp-mono">n</span> is approximately
+          <span class="wp-mono">
+            S(n) = (R&#x2080; &divide; &lambda;)(1 &minus; e<sup>&minus;&lambda;n</sup>)
+          </span>, monotonically approaching that limit without ever reaching it.
+        </p>
+        <p>
+          Emission is indexed by block count, not wall clock. Difficulty pins the
+          expected inter-block interval to a target rate, which gives the curve a
+          calendar interpretation: at the steady-state rate of one block per minute, the
+          half-life of the reward is a little over two years.
+        </p>
+
+        <figure class="wp-figure">
+          <svg
+            viewBox="0 0 600 240"
+            class="wp-fig"
+            role="img"
+            aria-label="Reward per HYPOW block as a function of the global block count"
+          >
+            <line class="wp-axis" x1="64" y1="200" x2="570" y2="200" />
+            <line class="wp-axis" x1="64" y1="20" x2="64" y2="200" />
+            <line class="wp-guide" x1="158.6" y1="110" x2="158.6" y2="200" />
+            <line class="wp-guide" x1="64" y1="110" x2="158.6" y2="110" />
+            <path
+              class="wp-curve"
+              d="M 64 20 L 80.5 40.5 L 97.1 58.7 L 113.6 74.9 L 130.2 89.1 L 146.8 101.8 L 163.3 113 L 179.8 122.9 L 196.4 131.7 L 212.9 139.5 L 229.5 146.4 L 246.1 152.5 L 262.6 158 L 279.1 162.8 L 295.7 167 L 312.2 170.8 L 328.7 174.1 L 345.4 177.1 L 361.9 179.7 L 378.4 182 L 395 184.1 L 411.5 185.9 L 428 187.5 L 444.6 188.9 L 461.2 190.2 L 477.7 191.3 L 494.3 192.3 L 510.8 193.2 L 527.3 194 L 543.9 194.7 L 560.5 195.3"
+            />
+            <text x="58" y="24" text-anchor="end">
+              R&#x2080;
+            </text>
+            <text x="58" y="114" text-anchor="end">
+              R&#x2080; / 2
+            </text>
+            <text x="58" y="204" text-anchor="end">
+              0
+            </text>
+            <text x="64" y="224" text-anchor="middle">
+              block 0
+            </text>
+            <text x="158.6" y="224" text-anchor="middle">
+              half-life
+            </text>
+            <text x="565" y="224" text-anchor="end">
+              block &rarr; &infin;
+            </text>
+          </svg>
+          <figcaption>
+            Reward per block against the global block count. The curve asymptotes; it
+            never reaches zero.
+          </figcaption>
+        </figure>
+
+        <h3>5.2 Immutability</h3>
+        <p>
+          The token and minter contracts have no admin, no governance, no upgrade
+          authority, and no allowlists. Supply cap, name, symbol, emission curve, the
+          single authorized minter, the difficulty rule, and the rule that every
+          perpetual market mines, present or future, are fixed at deployment and
+          irrevocable. No one, including its authors, can change the terms of the launch.
+        </p>
+      </section>
+
+      <section id="wp-references">
+        <h2>References &amp; Links</h2>
+        <ol class="wp-references">
+          <li>
+            Hyperliquid documentation: 
+            <a
+              href="https://hyperliquid.gitbook.io/hyperliquid-docs" target="_blank" rel="noopener"
+            >
+              hyperliquid.gitbook.io/hyperliquid-docs
+            </a>
+          </li>
+          <li>
+            HyperEVM precompiles: see 
+            <span class="wp-mono">L1Read.sol</span> in the protocol repository.
+          </li>
+          <li>
+            drand: a distributed randomness beacon operated by the League of Entropy.
+          </li>
+          <li>
+            Nakamoto, S. (2008). 
+            <em>Bitcoin: A Peer-to-Peer Electronic Cash System</em>.
+          </li>
+        </ol>
+      </section>
+    </article>
+  </main>
+
+  <aside class="explorer">
+    <div class="head">
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" id="tab-blocks" aria-selected="true" aria-controls="view-blocks">blocks</button>
+        <button type="button" role="tab" id="tab-miner" aria-selected="false" aria-controls="view-miner">miner<span class="live" id="miner-live" title="mining" hidden></span></button>
+      </div>
+      <div class="wallet" id="wallet"></div>
+    </div>
+    <div class="view" id="view-blocks" role="tabpanel" aria-labelledby="tab-blocks">
+    <div class="stats">
+      <div><small>Height</small><strong id="s-blocks">—</strong></div>
+      <div><small>Difficulty</small><strong id="s-diff">—</strong></div>
+      <div><small>Trading power</small><strong id="s-power">—</strong></div>
+      <div><small>Last block</small><strong id="s-ago">—</strong></div>
+    </div>
+    <div class="blocks">
+      <table>
+        <thead><tr><th>#</th><th>time</th><th>miner</th><th class="num">reward</th><th class="num">tx</th></tr></thead>
+        <tbody id="blocks"></tbody>
+      </table>
+      <div class="empty" id="no-blocks">loading…</div>
+      <button type="button" class="older" id="older" hidden>older blocks</button>
+    </div>
+    </div>
+
+    <div class="view" id="view-miner" role="tabpanel" aria-labelledby="tab-miner" hidden>
+      <div class="tabs subtabs" role="tablist">
+        <button type="button" role="tab" id="sub-browser" aria-selected="true" aria-controls="pane-browser">in-browser</button>
+        <button type="button" role="tab" id="sub-cli" aria-selected="false" aria-controls="pane-cli">cli</button>
+      </div>
+      <div class="sub" id="pane-browser" role="tabpanel" aria-labelledby="sub-browser">
+        <div class="term">
+          <div class="term-out" id="miner-log" role="log" aria-live="polite"></div>
+          <div class="term-box" id="miner-status">loading…</div>
+          <div class="term-suggest" id="miner-suggest" hidden></div>
+          <label class="term-line" id="miner-line"><span class="term-prompt" id="miner-prompt">connect ›</span><input class="term-in" id="miner-input" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Miner input"></label>
+        </div>
+        <p class="always">Mining stops when you close this tab. Alternatively, you can <a href="#cli" id="to-cli">use the CLI</a>.</p>
+      </div>
+      <div class="sub cli" id="pane-cli" role="tabpanel" aria-labelledby="sub-cli" hidden>
+  <p>The miner is a small open program that runs on your computer while you trade. It needs Node 22.18 or newer.</p>
+  <div class="cmdline"><div class="lines"><code>npx hypow mine</code></div><button>copy</button></div>
+  <p>Or build it from source. The miner and the contracts are in one <a href="https://github.com/hypowtoshi/hypow">open repository</a>:</p>
+  <div class="cmdline"><div class="lines"><code>git clone https://github.com/hypowtoshi/hypow</code><code>cd hypow &amp;&amp; npm ci --prefix miner</code><code>npx ./miner mine</code></div><button>copy</button></div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<nav class="bar">
+  <a href="https://github.com/hypowtoshi/hypow">source</a>
+  <span class="dim">hyperevm · 0x14ae…d506</span>
+</nav>
+
+
+<script>
+const RPCS = ['https://rpc.hyperliquid.xyz/evm', 'https://hyperliquid-json-rpc.stakely.io', 'https://rpc.hypurrscan.io', 'https://hyperliquid.drpc.org'];
+// drpc rejects wide eth_getLogs ranges, so log queries skip it. The official RPC
+// comes last: it rations eth_getLogs to about 2,000 blocks a minute per IP and then
+// refuses every call from the IP for a minute, which would stall a browser miner on this page.
+const LOG_RPCS = ['https://hyperliquid-json-rpc.stakely.io', 'https://rpc.hypurrscan.io', 'https://rpc.hyperliquid.xyz/evm'];
+const MINTER = '0x14ae637542b6a125217ee477b756504ff009d506';
+const DEPLOY_BLOCK = 47234006n;
+const WON = '0x9261c26e2975e94ae46c3df9b8ec62d943c06c5160c5bde37059040848a4dae8';
+const DRAND_GENESIS = 1727521075; // drand evmnet: round r is published at genesis + (r − 1)·3 s
+const ROWS = 200;
+const CHUNK = 1000n;
+// A walk back, at load and on each "older blocks" click, stops at this many wins
+// or this many blocks, whichever comes first: never a walk from the deploy block.
+const PAGE_WINS = 20;
+const PAGE_SPAN = 2000n;
+const $ = (id) => document.getElementById(id);
+const short = (a) => a.slice(0, 6) + '…' + a.slice(-4);
+const fmt = (n) => Number(n).toLocaleString('en-US');
+
+async function rpc(method, params, urls = RPCS) {
+  // Public endpoints rate-limit per IP, so fall through the list on any error.
+  let last;
+  for (const url of urls) {
+    try {
+      const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) });
+      const j = await r.json();
+      if (!j.error) return j.result;
+      last = new Error(j.error.message);
+    } catch (e) { last = e; }
+  }
+  throw last;
+}
+const call = (data) => rpc('eth_call', [{ to: MINTER, data }, 'latest']).then(BigInt);
+const hex = (n) => '0x' + n.toString(16);
+
+// A block's time is its drand round's publish time, so no block headers are fetched.
+const wins = [];
+const roundTime = (round) => (DRAND_GENESIS + (Number(round) - 1) * 3) * 1000;
+
+function addBlock(l, older = false) {
+  const owner = '0x' + l.topics[1].slice(26);
+  const at = roundTime(BigInt(l.topics[2]));
+  const height = BigInt(l.topics[3]) + 1n;
+  const reward = Number(BigInt('0x' + l.data.slice(66, 130))) / 1e18;
+  older ? wins.unshift(at) : wins.push(at);
+  const tr = document.createElement('tr');
+  tr.dataset.owner = owner;
+  if (owner === mine) tr.className = 'hit';
+  tr.innerHTML = `<td>${fmt(height)}</td><td>${new Date(at).toTimeString().slice(0, 8)}</td><td>${short(owner)}</td><td class="num">${fmt(reward.toFixed(2))}</td><td class="num">${l.transactionHash.slice(0, 8)}</td>`;
+  older ? $('blocks').append(tr) : $('blocks').prepend(tr);
+  while ($('blocks').children.length > ROWS) $('blocks').lastChild.remove();
+  $('no-blocks').hidden = true;
+}
+
+// The head comes from the log RPCs too, so a range never ends past what the RPC
+// answering it has synced: Chainlink refuses one that does, and the table missed its blocks.
+async function logs(from, to) {
+  return rpc('eth_getLogs', [{ address: MINTER, fromBlock: hex(from), toBlock: hex(to), topics: [WON] }], LOG_RPCS);
+}
+
+function handle(l, older) {
+  if (l.topics[0] === WON) addBlock(l, older);
+}
+
+// The newest block read (following the head), and the oldest (walking back).
+let cursor = null;
+let oldest = null;
+let shown = 0n; // wins the minter had counted when the table last caught up
+async function page() {
+  const found = wins.length;
+  const stop = oldest - PAGE_SPAN;
+  for (let to = oldest - 1n; to >= DEPLOY_BLOCK && to > stop && wins.length - found < PAGE_WINS; to -= CHUNK) {
+    const from = to - CHUNK + 1n > DEPLOY_BLOCK ? to - CHUNK + 1n : DEPLOY_BLOCK;
+    for (const l of (await logs(from, to)).reverse()) handle(l, true);
+    oldest = from;
+  }
+  $('older').hidden = oldest <= DEPLOY_BLOCK;
+}
+async function history() {
+  const head = BigInt(await rpc('eth_blockNumber', [], LOG_RPCS));
+  cursor = head;
+  oldest = head + 1n;
+  await page();
+  if (!wins.length) $('no-blocks').textContent = oldest <= DEPLOY_BLOCK ? 'No blocks yet.' : 'No blocks lately.';
+}
+$('older').addEventListener('click', async () => {
+  $('older').disabled = true;
+  try { await page(); } catch (e) { /* public RPC hiccup; click again */ }
+  $('older').disabled = false;
+});
+// New wins only: stats() polls the minter's win count, and logs are read only when it grows.
+let following = false;
+async function follow(winCount) {
+  if (cursor === null || winCount <= shown || following) return;
+  following = true;
+  try {
+    const head = BigInt(await rpc('eth_blockNumber', [], LOG_RPCS));
+    for (let from = cursor + 1n; from <= head; from += CHUNK) {
+      const to = from + CHUNK - 1n < head ? from + CHUNK - 1n : head;
+      for (const l of await logs(from, to)) handle(l);
+      cursor = to;
+    }
+    shown = winCount;
+  } catch (e) { /* public RPC hiccup; next poll retries */ }
+  following = false;
+}
+
+async function stats() {
+  try {
+    const [wc, diff] = await Promise.all([call('0xabad35bc'), call('0x19cae462')]);
+    difficulty = diff;
+    count = wc;
+    $('s-blocks').textContent = fmt(wc);
+    $('s-diff').textContent = fmt(diff);
+    await follow(wc);
+  } catch (e) { /* retry next poll */ }
+}
+
+let difficulty = null;
+let count = null; // the minter's win count, as last read
+function usd(x) { return x >= 1000 ? '$' + fmt(Math.round(x)) : '$' + x.toFixed(x >= 10 ? 0 : 2); }
+function ago(ms) { const s = Math.max(0, Math.round(ms / 1000)); return s < 60 ? `${s}s ago` : s < 3600 ? `${Math.floor(s / 60)}m ago` : `${Math.floor(s / 3600)}h ago`; }
+
+// Trading power, like Bitcoin's hashrate: a block takes D attempts on average and an
+// attempt is one cent of volume, so the network trades D cents per average block interval.
+function power() {
+  if (difficulty === null || wins.length < 2) return;
+  const recent = wins.slice(-11);
+  const interval = (recent[recent.length - 1] - recent[0]) / (recent.length - 1) / 60000;
+  $('s-power').textContent = `${usd(Number(difficulty) / 100 / interval)}/min`;
+}
+function tick() {
+  if (wins.length) $('s-ago').textContent = ago(Date.now() - wins[wins.length - 1]);
+  power();
+}
+
+// Stats first: the history walk bursts the public RPC, which rate-limits. The
+// table has caught up with the win count the walk started from.
+stats().then(async () => { const at = count; await history(); shown = at ?? 0n; }).catch(() => {});
+setInterval(tick, 1000);
+setInterval(stats, 6000);
+
+for (const b of document.querySelectorAll('.cmdline button')) {
+  b.addEventListener('click', async () => {
+    const text = [...b.parentElement.querySelectorAll('code')].map((c) => c.textContent).join('\n');
+    await navigator.clipboard.writeText(text);
+    b.textContent = 'copied';
+    setTimeout(() => (b.textContent = 'copy'), 1500);
+  });
+}
+// Tabs: blocks | miner on the right pane, in-browser | cli inside the miner.
+function tabs(names, prefix, pane) {
+  const show = (name) => {
+    for (const n of names) {
+      $(prefix + n).setAttribute('aria-selected', String(n === name));
+      $(pane + n).hidden = n !== name;
+    }
+  };
+  for (const n of names) $(prefix + n).addEventListener('click', () => show(n));
+  return show;
+}
+const showTab = tabs(['blocks', 'miner'], 'tab-', 'view-');
+const showSub = tabs(['browser', 'cli'], 'sub-', 'pane-');
+window.addEventListener('hypow:cli', () => { showTab('miner'); showSub('cli'); });
+$('to-cli').addEventListener('click', (e) => { e.preventDefault(); showSub('cli'); });
+if (location.hash === '#miner') showTab('miner');
+
+// The browser miner (hypow-miner.js) says whose miner this is, to highlight
+// their blocks, and whether it is mining, for the dot on the tab.
+let mine = null;
+window.addEventListener('hypow:owner', (e) => {
+  mine = e.detail && e.detail.toLowerCase();
+  for (const tr of $('blocks').children) tr.classList.toggle('hit', tr.dataset.owner === mine);
+});
+window.addEventListener('hypow:mining', (e) => { $('miner-live').hidden = !e.detail; });
+</script>
+<script src="hypow-miner.js"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+{
+  "name": "hypow",
+  "version": "0.1.0",
+  "description": "Reference Hypow miner: mines HYPOW from your Hyperliquid trading",
+  "type": "module",
+  "bin": {
+    "hypow": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.ts",
+    "prepare": "npm run build",
+    "build": "node build.ts"
+  },
+  "dependencies": {
+    "@noble/hashes": "^2.4.0",
+    "viem": "^2.56.8"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.6",
+    "esbuild": "^0.28.2",
+    "typescript": "5.9"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hypowtoshi/hypow.git",
+    "directory": "miner"
+  }
+}

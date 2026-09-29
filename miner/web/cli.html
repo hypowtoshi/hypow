@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hypow miner · authorize</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+<!-- The CLI's authorize page: the site's miner pane, alone. Served by src/authorize.ts. -->
+<style>
+  :root {
+    --paper: #0f1a1f; --ink: #f6fefd; --ink-2: #949e9c; --line: #3b4a50; --rule: #273035; --well: #0a1216; --signal: #50d2c1;
+    --mono: "Martian Mono", ui-monospace, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--paper); color: var(--ink); -webkit-font-smoothing: antialiased; }
+  [hidden] { display: none !important; }
+  button:focus-visible, input:focus-visible { outline: 1px solid var(--signal); outline-offset: 2px; }
+  main { height: 100%; max-width: 52rem; margin: 0 auto; padding: 1.6rem 2rem; display: flex; flex-direction: column; font: 400 .72rem/1.7 var(--mono); }
+  .head { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: .7rem; }
+  .head b { font-weight: 600; font-size: .8rem; }
+  .head b span { font-weight: 400; color: var(--ink-2); font-size: .66rem; margin-left: .6rem; }
+
+  /* the terminal: log, the CLI's status box, suggestions, then the prompt */
+  .term { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: .9rem; background: var(--well); border: 1px solid var(--rule); border-radius: 4px; font: 400 .68rem/1.75 var(--mono); cursor: text; }
+  .term-out { flex: 1; min-height: 0; overflow-y: auto; padding: .7rem .9rem .3rem; scrollbar-width: thin; scrollbar-color: var(--rule) transparent; }
+  /* time | label | message, wrapped lines hanging under the message like the CLI's columns */
+  .term-out .row { display: grid; grid-template-columns: 8ch 11ch minmax(0, 1fr); column-gap: 1.2ch; overflow-wrap: anywhere; }
+  .term-out .time { color: var(--ink-2); }
+  .term-out .label, .term-out .dim { color: var(--ink-2); }
+  .term-out [data-tone="good"] .label { color: var(--signal); }
+  .term-out [data-tone="info"] .label { color: #97fce4; }
+  .term-out [data-tone="warn"] .label { color: #d9b86a; }
+  .term-out [data-tone="bad"] .label { color: #ed7088; }
+  .term-out [data-tone="cmd"] .label, .term-out [data-tone="cmd"] .message { color: var(--ink); }
+  .menu { margin: .15rem 0 .35rem; }
+  .menu .t { display: block; color: var(--ink); font-weight: 600; }
+  .menu button { display: block; width: 100%; background: none; border: 0; padding: 0 0 0 1.3rem; font: inherit; color: var(--ink-2); cursor: pointer; text-align: left; position: relative; white-space: pre-wrap; }
+  .menu button[aria-selected="true"] { color: var(--signal); }
+  .menu button[aria-selected="true"]::before { content: "❯"; position: absolute; left: .1rem; }
+  .menu button:focus-visible { outline: none; }
+  .menu .hint { display: block; color: var(--ink-2); opacity: .7; margin-top: .15rem; }
+  /* the closing note, once the CLI is authorized */
+  .term-out .note { margin: .8rem 0 .4rem; border: 1px solid var(--signal); border-radius: 3px; padding: .7rem .9rem; }
+  .term-out .note .t { display: block; color: var(--signal); font-weight: 600; font-size: .8rem; }
+  .term-out .note .t::before { content: "✓ "; }
+  .term-out .note p { margin: .3rem 0 0; color: var(--ink); }
+  .term-box { margin: .2rem .9rem .5rem; border: 1px solid var(--rule); border-radius: 3px; padding: .25rem .6rem; color: var(--ink); }
+  .term-box div { display: grid; grid-template-columns: 9ch minmax(0, 1fr); overflow-wrap: anywhere; }
+  .term-box .label { color: var(--ink-2); }
+  .term-suggest { border-top: 1px solid var(--rule); padding: .35rem .9rem; }
+  .term-line { display: flex; gap: .6rem; align-items: center; border-top: 1px solid var(--rule); padding: .5rem .9rem; }
+  .term-prompt { color: var(--signal); white-space: nowrap; }
+  .term-in { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: var(--ink); font: inherit; caret-color: var(--signal); padding: 0; }
+  .term-in:focus-visible { outline: none; }
+  .term-in::placeholder { color: var(--ink-2); opacity: .6; }
+  .always { margin: .7rem 0 0; color: var(--ink-2); font-size: .66rem; line-height: 1.9; }
+
+  /* header wallet control: "connect wallet" or the owner, with a small dropdown */
+  .wallet { position: relative; }
+  .wallet .btn { font: 400 .62rem/1 var(--mono); color: var(--ink-2); background: none; border: 1px solid var(--rule); border-radius: 3px; padding: .35rem .5rem; cursor: pointer; }
+  .wallet .btn:hover, .wallet .btn:focus-visible { color: var(--signal); border-color: var(--signal); }
+  .wallet .drop { position: absolute; right: 0; top: calc(100% + .3rem); z-index: 2; min-width: 12rem; background: var(--paper); border: 1px solid var(--rule); border-radius: 3px; padding: .25rem 0; }
+  .wallet .drop button { display: block; width: 100%; text-align: left; background: none; border: 0; padding: .35rem .7rem; font: 400 .66rem/1.4 var(--mono); color: var(--ink); cursor: pointer; }
+  .wallet .drop button:hover, .wallet .drop button:focus-visible { color: var(--signal); }
+  /* connect popup: the wallets the browser has, one row each */
+  dialog.connect { width: calc(100% - 2rem); max-width: 22rem; padding: 1rem 1.1rem 1.1rem; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); color: var(--ink); font: 400 .72rem/1.6 var(--mono); }
+  dialog.connect::backdrop { background: #04060caa; }
+  .connect-head { display: flex; justify-content: space-between; align-items: center; }
+  .connect-head .title { font-weight: 600; font-size: .8rem; }
+  .connect-head .x { background: none; border: 0; color: var(--ink-2); font: 400 1.1rem/1 var(--mono); cursor: pointer; padding: 0 .2rem; }
+  .connect-head .x:hover { color: var(--signal); }
+  dialog.connect .dim { display: block; color: var(--ink-2); font-size: .66rem; margin: .35rem 0 .9rem; }
+  .connect-list { display: flex; flex-direction: column; gap: .4rem; }
+  .connect-row { display: flex; align-items: center; gap: .7rem; width: 100%; background: var(--well); border: 1px solid var(--rule); border-radius: 3px; padding: .6rem .7rem; font: inherit; color: var(--ink); cursor: pointer; text-align: left; }
+  .connect-row:hover, .connect-row:focus-visible { border-color: var(--signal); color: var(--signal); outline: none; }
+  .connect-row img { width: 20px; height: 20px; border-radius: 4px; }
+  .connect-empty { margin: 0; color: var(--ink-2); font-size: .66rem; }
+
+  @media (max-width: 520px) {
+    main { padding: 1rem; }
+    .head b span { display: none; }
+    .term-out .row { grid-template-columns: 11ch minmax(0, 1fr); }
+    .term-out .time { display: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="head"><b>hypow · miner<span>localhost:4747 · on this machine</span></b><div class="wallet" id="wallet"></div></div>
+  <div class="term">
+    <div class="term-out" id="miner-log" role="log" aria-live="polite"></div>
+    <div class="term-box" id="miner-status">loading…</div>
+    <div class="term-suggest" id="miner-suggest" hidden></div>
+    <label class="term-line" id="miner-line"><span class="term-prompt" id="miner-prompt">connect ›</span><input class="term-in" id="miner-input" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Miner input"></label>
+  </div>
+  <p class="always">Your wallet stays in this browser. Close this tab once you're done; the miner runs in your terminal.</p>
+</main>
+<script type="application/json" id="hypow-cli">/*CONFIG*/</script>
+<script src="hypow-miner.js"></script>
+</body>
+</html>

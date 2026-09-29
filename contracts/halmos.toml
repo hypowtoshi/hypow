@@ -1,0 +1,10 @@
+# Halmos symbolic-test configuration.
+# Match ONLY mixedCase `check*` proof functions. Two reasons this is deliberate,
+# not Halmos's default `(check|invariant)_`:
+#  - the repo's linter rejects the snake_case names Halmos matches by default, so
+#    the symbolic proofs are named `checkX`;
+#  - it must NOT match `invariant_*`, because Invariant.t.sol holds Foundry
+#    stateful-fuzzing invariants that are not symbolic proofs — widening the
+#    prefix makes Halmos try (and fail) to run them.
+[global]
+function = "check"

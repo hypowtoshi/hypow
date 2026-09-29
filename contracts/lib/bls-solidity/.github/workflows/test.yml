@@ -1,0 +1,57 @@
+name: Foundry
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  pull_request_target:
+
+jobs:
+  check:
+    strategy:
+      fail-fast: true
+
+    name: Foundry project
+    runs-on: ubuntu-latest
+      
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Show Forge version
+        run: |
+          forge --version
+
+      - name: Install Dependencies with Soldeer
+        run: |
+          forge soldeer install
+
+      - name: Run Forge fmt
+        run: |
+          forge fmt --check
+        id: fmt
+
+      - name: Run Forge build
+        run: |
+          forge build --force --skip test --sizes
+        id: build
+
+      - name: Cache Rust Build Artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      # NOTE: Some tests use rust. Github-hosted runners have rust/rustup preinstalled
+      - name: Run tests
+        run: |
+          cargo install just@1.42.4
+          just test
+        id: tests
