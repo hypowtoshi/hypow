@@ -68,8 +68,12 @@
   .head .chain { color: var(--ink-2); }
   .stats { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--rule); }
   .stats div { padding: .9rem 0; }
-  .stats [title] { cursor: help; }
-  .stats [title] small { text-decoration: underline dotted; text-underline-offset: 3px; }
+  .stats small { position: relative; }
+  .info { margin-left: .4em; width: 1.35em; height: 1.35em; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: none; color: var(--ink-2); font: 600 .55rem/1 var(--mono); text-transform: none; vertical-align: 1px; cursor: pointer; }
+  .info:hover, .info:focus-visible { color: var(--signal); border-color: var(--signal); outline: none; }
+  .tip { display: none; position: absolute; z-index: 5; top: calc(100% + .5rem); left: 0; width: 17rem; max-width: 70vw; padding: .6rem .75rem; background: var(--well); border: 1px solid var(--line); color: var(--ink); font: 400 .7rem/1.55 var(--mono); text-transform: none; letter-spacing: 0; }
+  .info:hover + .tip, .info:focus + .tip { display: block; }
+  .stats > div:nth-child(3) .tip { left: auto; right: 0; }
   .stats small { display: block; color: var(--ink-2); font-size: .6rem; text-transform: uppercase; letter-spacing: .08em; }
   .stats strong { display: block; font-weight: 400; font-size: 1.15rem; letter-spacing: -.03em; margin-top: .15rem; }
   .mined { padding: .7rem 0 .9rem; border-bottom: 1px solid var(--rule); }
@@ -820,9 +824,8 @@
     <div class="view" id="view-blocks" role="tabpanel" aria-labelledby="tab-blocks">
     <div class="stats">
       <div><small>Height</small><strong id="s-blocks">—</strong></div>
-      <div title="How much trading one block takes on average. Each cent traded is one attempt. Every 2,016 blocks it retargets toward one block a minute."><small>Difficulty</small><strong id="s-diff">—</strong></div>
-      <div title="How much the whole network trades per minute, estimated from the difficulty and the recent block rate. Trading power divided by difficulty is blocks per minute; the target is one, so difficulty rises while it is higher.">
-        <small>Trading power</small><strong id="s-power">—</strong></div>
+      <div><small>Difficulty<button type="button" class="info" aria-label="What is difficulty?">i</button><span class="tip" role="tooltip">How much trading one block takes on average. Each cent traded is one attempt. Every 2,016 blocks it retargets toward one block a minute.</span></small><strong id="s-diff">—</strong></div>
+      <div><small>Trading power<button type="button" class="info" aria-label="What is trading power?">i</button><span class="tip" role="tooltip">How much the whole network trades per minute, estimated from the difficulty and the recent block rate. Trading power divided by difficulty is blocks per minute; the target is one, so difficulty rises while it is higher.</span></small><strong id="s-power">—</strong></div>
       <div><small>Last block</small><strong id="s-ago">—</strong></div>
     </div>
     <div class="mined">
